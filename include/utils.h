@@ -52,10 +52,6 @@ typedef struct {
     Color color;
 }Vertex;
 
-typedef struct {
-    GLint time;
-} Uniforms;
-
 typedef enum {
     VA_ATT_POS = 0,
     VA_ATT_COL = 1,
@@ -64,7 +60,6 @@ typedef enum {
 typedef struct {
     Window_struct* window;
     Buffers_struct* buffers;
-    Uniforms* uniforms;
     int revise_circle;
     int reload_shaders;
     ToBeRendered to_render;
