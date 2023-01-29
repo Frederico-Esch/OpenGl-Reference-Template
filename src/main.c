@@ -161,7 +161,7 @@ void generate_buffers(Buffers_struct* buffers) {
     if (buffers->vao_size > 0){
         buffers->vao = malloc(buffers->vao_size*sizeof(GLuint));
         if (buffers->vao == NULL) exit_error("Error Creating VAO");
-        glGenVertexArrays(buffers->vao_size, buffers->vao);
+        glCreateVertexArrays(buffers->vao_size, buffers->vao);
 
 #ifdef DEBUG_INFO
         printf_s("%d VAO CREATED ", (int)buffers->vao_size);
@@ -171,7 +171,7 @@ void generate_buffers(Buffers_struct* buffers) {
     if (buffers->vbo_size > 0) {
         buffers->vbo = malloc(buffers->vbo_size*sizeof(GLuint));
         if (buffers->vbo == NULL) exit_error("Error Creating VBO");
-        glGenBuffers(buffers->vbo_size, buffers->vbo); //GL_ARRAY_BUFFER
+        glCreateBuffers(buffers->vbo_size, buffers->vbo); //GL_ARRAY_BUFFER
 
 #ifdef DEBUG_INFO
         printf_s("%d VBO CREATED ", (int)buffers->vbo_size);
@@ -181,7 +181,7 @@ void generate_buffers(Buffers_struct* buffers) {
     if (buffers->ebo_size > 0) {
         buffers->ebo = malloc(buffers->ebo_size*sizeof(GLuint));
         if (buffers->ebo == NULL) exit_error("Error Creating EBO");
-        glGenBuffers(buffers->ebo_size, buffers->ebo); //GL_ELEMENT_ARRAY_BUFFER
+        glCreateBuffers(buffers->ebo_size, buffers->ebo); //GL_ELEMENT_ARRAY_BUFFER
 
 #ifdef DEBUG_INFO
         printf_s("%d EBO CREATED", (int)buffers->ebo_size);
@@ -348,35 +348,39 @@ void draw_routine(){
     unbound_buffers();
 }
 
-void background_flag() {
+void background_flag(GLuint vbo, GLuint ebo) {
     Vertex data[] = {
         (Vertex) { .point = (Point) { .X = -1, .Y = -1 }, .color = (Color) { .R = 0, .G = 156.f/255.f, .B = 59.f/255.f } },
         (Vertex) { .point = (Point) { .X = -1, .Y =  1 }, .color = (Color) { .R = 0, .G = 156.f/255.f, .B = 59.f/255.f } },
         (Vertex) { .point = (Point) { .X =  1, .Y = -1 }, .color = (Color) { .R = 0, .G = 156.f/255.f, .B = 59.f/255.f } },
         (Vertex) { .point = (Point) { .X =  1, .Y =  1 }, .color = (Color) { .R = 0, .G = 156.f/255.f, .B = 59.f/255.f } },
     };
-    glBufferData(GL_ARRAY_BUFFER, 4*sizeof(Vertex), data, GL_STATIC_READ);
+    glNamedBufferStorage(vbo, 4*sizeof(Vertex), data, GL_DYNAMIC_STORAGE_BIT);
+    //glBufferData(GL_ARRAY_BUFFER, 4*sizeof(Vertex), data, GL_STATIC_READ);
 
     GLuint indexes[] = { 0, 1, 2, 1, 2, 3 };
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6*sizeof(GLuint), indexes, GL_STATIC_READ);
-    unbound_buffers();
+    glNamedBufferStorage(ebo, 6*sizeof(GLuint), indexes, GL_DYNAMIC_STORAGE_BIT);
+    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6*sizeof(GLuint), indexes, GL_STATIC_READ);
+    //unbound_buffers();
 }
 
-void diamond_flag() {
+void diamond_flag(GLuint vbo, GLuint ebo) {
     Vertex data[] = {
         (Vertex) { .point = (Point) { .X = -1, .Y =  0 }, .color = (Color) { .R = 255.f/255.f, .G = 223.f/255.f, .B = 0.f/255.f } },
         (Vertex) { .point = (Point) { .X =  0, .Y =  1 }, .color = (Color) { .R = 255.f/255.f, .G = 223.f/255.f, .B = 0.f/255.f } },
         (Vertex) { .point = (Point) { .X =  0, .Y = -1 }, .color = (Color) { .R = 255.f/255.f, .G = 223.f/255.f, .B = 0.f/255.f } },
         (Vertex) { .point = (Point) { .X =  1, .Y =  0 }, .color = (Color) { .R = 255.f/255.f, .G = 223.f/255.f, .B = 0.f/255.f } },
     };
-    glBufferData(GL_ARRAY_BUFFER, 4*sizeof(Vertex), data, GL_STATIC_READ);
+    glNamedBufferStorage(vbo, 4*sizeof(Vertex), data, GL_DYNAMIC_STORAGE_BIT);
+    //glBufferData(GL_ARRAY_BUFFER, 4*sizeof(Vertex), data, GL_STATIC_READ);
 
     GLuint indexes[] = { 0, 1, 2, 1, 2, 3 };
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6*sizeof(GLuint), indexes, GL_STATIC_READ);
-    unbound_buffers();
+    glNamedBufferStorage(ebo, 6*sizeof(GLuint), indexes, GL_DYNAMIC_STORAGE_BIT);
+    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6*sizeof(GLuint), indexes, GL_STATIC_READ);
+    //unbound_buffers();
 }
 
-void circle_flag(int vertexes) {
+void circle_flag(GLuint vbo, GLuint ebo, int vertexes) {
     const int amount_indexes = vertexes+1;
     const double radius = .3;
     const double step = (2.*M_PI)/((double)(vertexes - 1));
@@ -396,9 +400,12 @@ void circle_flag(int vertexes) {
     indexes[vertexes] = 1;
     data[0] = (Vertex) { .point = (Point) { .X = 0, .Y = 0 }, .color = (Color) { .R = 0, .G = 39.f/255.f, .B = 118.f/255.f } };
 
-    glBufferData(GL_ARRAY_BUFFER, vertexes*sizeof(Vertex), data, GL_STREAM_DRAW);
+    
+    glNamedBufferStorage(vbo, vertexes*sizeof(Vertex), data, GL_DYNAMIC_STORAGE_BIT);
+    //glBufferData(GL_ARRAY_BUFFER, vertexes*sizeof(Vertex), data, GL_STREAM_DRAW);
 
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, amount_indexes*sizeof(GLuint), indexes ,GL_STREAM_DRAW);
+    glNamedBufferStorage(ebo, amount_indexes*sizeof(GLuint), indexes, GL_DYNAMIC_STORAGE_BIT);
+    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, amount_indexes*sizeof(GLuint), indexes ,GL_STREAM_DRAW);
 
     free(indexes);
     free(data);
@@ -408,10 +415,6 @@ void bind_buffer(Buffers_struct* buffers, size_t vao_index, size_t vbo_index, si
     glBindVertexArray(buffers->vao[vao_index]);
     glBindBuffer(GL_ARRAY_BUFFER, buffers->vbo[vbo_index]);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers->ebo[ebo_index]);
-    glEnableVertexAttribArray(VA_ATT_POS);
-    glEnableVertexAttribArray(VA_ATT_COL);
-    glVertexAttribPointer(VA_ATT_POS, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), NULL);
-    glVertexAttribPointer(VA_ATT_COL, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(Point));
 }
 
 void load_uniforms(GLuint program, Uniforms* uniforms) {
@@ -426,16 +429,14 @@ void update_time(double* prev_time, double* time, Uniforms* uniforms) {
     glUniform1f(uniforms->time, (float)delta_time);
 }
 
-void initialize(Window_struct* window, Buffers_struct* buffers, GLFWerrorfun _error_callback, GLFWkeyfun _key_callback, GLFWwindowsizefun _resize_callback) {
+void initialize(Window_struct* window, GLFWerrorfun _error_callback, GLFWkeyfun _key_callback, GLFWwindowsizefun _resize_callback) {
     if (!glfwInit()) exit_error("Error loading glfw");
     glfwSetErrorCallback(_error_callback);
-    setup_glfw_version(3, 3);
+    setup_glfw_version(4, 5);
 
     setup_window_and_callbacks(window, _key_callback, _resize_callback);
 
     load_glad();
-
-    generate_buffers(buffers);
 }
 
 void cleanup(Window_struct* window, Buffers_struct* buffers) {
@@ -443,6 +444,31 @@ void cleanup(Window_struct* window, Buffers_struct* buffers) {
     for (int i = 0; i < buffers->program_size; i++)
         glDeleteProgram(buffers->program[i]);
     glfwDestroyWindow(window->window);
+}
+
+void setup_attribs(Buffers_struct* buffers){
+    for(int i = 0; i < buffers->vao_size; i++){
+        glEnableVertexArrayAttrib(buffers->vao[i], VA_ATT_POS);
+        glEnableVertexArrayAttrib(buffers->vao[i], VA_ATT_COL);
+        //glBindVertexArray(buffers->vao[i]);
+        //glEnableVertexAttribArray(VA_ATT_POS);
+        //glEnableVertexAttribArray(VA_ATT_COL);
+        
+        glVertexArrayAttribFormat(buffers->vao[i], VA_ATT_POS, 2, GL_FLOAT, GL_FALSE, 0);//No stride?? Strange
+        glVertexArrayAttribFormat(buffers->vao[i], VA_ATT_COL, 3, GL_FLOAT, GL_FALSE, sizeof(Point));//No stride?? Strange
+        //glVertexAttribPointer(VA_ATT_POS, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), NULL);
+        //glVertexAttribPointer(VA_ATT_COL, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(Point));
+        
+        glVertexArrayAttribBinding(buffers->vao[i], VA_ATT_POS, 0);//binding points dont make sense
+        glVertexArrayAttribBinding(buffers->vao[i], VA_ATT_COL, 0);//binding points dont make sense
+    }
+}
+
+void binding_buffers(Buffers_struct* buffers){
+    for(int i = 0; i < buffers->vao_size; i++){
+        glVertexArrayVertexBuffer(buffers->vao[i], 0, buffers->vbo[i], 0, sizeof(Vertex));
+        glVertexArrayElementBuffer(buffers->vao[i], buffers->ebo[i]);
+    }
 }
 
 int main() {
@@ -459,27 +485,30 @@ int main() {
             .Title = "Principal"
     };
 
-    buffers.vao_size = 3; buffers.vbo_size = 3; buffers.ebo_size = 3;
     initialize(
         &window,
-        &buffers,
         error_callback,
         key_callback,
         window_resize_callback
     );
 
+    buffers.vao_size = 3; buffers.vbo_size = 3; buffers.ebo_size = 3;
+    generate_buffers(&buffers);
+    binding_buffers(&buffers);
+    setup_attribs(&buffers);
+
     int circle_vertexes = read_circle_definition();
     for (int i = 0; i < buffers.vao_size; i++) {
-        bind_buffer(&buffers, i, i, i);
+        //bind_buffer(&buffers, i, i, i);
         switch (i) {
             case 0:
-            background_flag();
+            background_flag(buffers.vbo[0], buffers.ebo[0]);
             break;
             case 1:
-            diamond_flag();
+            diamond_flag(buffers.vbo[1], buffers.ebo[1]);
             //break;
             case 2:
-            circle_flag(circle_vertexes);
+            circle_flag(buffers.vbo[2], buffers.ebo[2], circle_vertexes);
             break;
         }
     }
@@ -496,9 +525,7 @@ int main() {
         update_time(&prev_time, &time, &uniforms);
         if (main_state.revise_circle) {
             circle_vertexes = read_circle_definition();
-            glBindVertexArray(0);
-            bind_buffer(&buffers, 2, 2, 2);
-            circle_flag(circle_vertexes);
+            circle_flag(buffers.vbo[2], buffers.ebo[2], circle_vertexes);
 
             main_state.revise_circle = 0;
         }
@@ -511,7 +538,7 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
         ToBeRendered toBeRendered = main_state.to_render;
 
-
+        glUseProgram(buffers.program[0]);
         if ((toBeRendered & BACKGROUND) == BACKGROUND) {
             glBindVertexArray(buffers.vao[0]);
 
