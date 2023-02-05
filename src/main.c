@@ -400,11 +400,11 @@ void circle_flag(GLuint vbo, GLuint ebo, int vertexes) {
     indexes[vertexes] = 1;
     data[0] = (Vertex) { .point = (Point) { .X = 0, .Y = 0 }, .color = (Color) { .R = 0, .G = 39.f/255.f, .B = 118.f/255.f } };
 
-    
-    glNamedBufferStorage(vbo, vertexes*sizeof(Vertex), data, GL_DYNAMIC_STORAGE_BIT);
+
+    glNamedBufferData(vbo, vertexes*sizeof(Vertex), data, GL_STREAM_DRAW);
     //glBufferData(GL_ARRAY_BUFFER, vertexes*sizeof(Vertex), data, GL_STREAM_DRAW);
 
-    glNamedBufferStorage(ebo, amount_indexes*sizeof(GLuint), indexes, GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferData(ebo, amount_indexes*sizeof(GLuint), indexes, GL_STREAM_DRAW);
     //glBufferData(GL_ELEMENT_ARRAY_BUFFER, amount_indexes*sizeof(GLuint), indexes ,GL_STREAM_DRAW);
 
     free(indexes);
@@ -453,12 +453,12 @@ void setup_attribs(Buffers_struct* buffers){
         //glBindVertexArray(buffers->vao[i]);
         //glEnableVertexAttribArray(VA_ATT_POS);
         //glEnableVertexAttribArray(VA_ATT_COL);
-        
+
         glVertexArrayAttribFormat(buffers->vao[i], VA_ATT_POS, 2, GL_FLOAT, GL_FALSE, 0);//No stride?? Strange
         glVertexArrayAttribFormat(buffers->vao[i], VA_ATT_COL, 3, GL_FLOAT, GL_FALSE, sizeof(Point));//No stride?? Strange
         //glVertexAttribPointer(VA_ATT_POS, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), NULL);
         //glVertexAttribPointer(VA_ATT_COL, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(Point));
-        
+
         glVertexArrayAttribBinding(buffers->vao[i], VA_ATT_POS, 0);//binding points dont make sense
         glVertexArrayAttribBinding(buffers->vao[i], VA_ATT_COL, 0);//binding points dont make sense
     }
