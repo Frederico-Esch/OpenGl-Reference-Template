@@ -3,4 +3,5 @@
 **/**/*.dll
 **/**/*.lib
 **/**/gl.c
+textures/*
 .cache
