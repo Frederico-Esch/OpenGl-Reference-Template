@@ -37,6 +37,18 @@ typedef struct {
 } Buffers_struct;
 
 typedef struct {
+    int channels, width, height, unit;
+    const char* name;
+    GLuint program;
+} TextureInfo_struct;
+
+typedef struct {
+    GLuint* texture;
+    TextureInfo_struct* texture_info;
+    GLsizei texture_size;
+} Texture_struct;
+
+typedef struct {
     GLfloat X;
     GLfloat Y;
 } Point;
@@ -50,6 +62,7 @@ typedef struct {
 typedef struct {
     Point point;
     Color color;
+    Point texCoord;
 }Vertex;
 
 typedef struct {
@@ -59,11 +72,13 @@ typedef struct {
 typedef enum {
     VA_ATT_POS = 0,
     VA_ATT_COL = 1,
+    VA_ATT_TEX = 2,
 } VA_ATT;
 
 typedef struct {
-    Window_struct* window;
+    Window_struct*  window;
     Buffers_struct* buffers;
+    Texture_struct* textures;
     Uniforms* uniforms;
     int revise_circle;
     int reload_shaders;

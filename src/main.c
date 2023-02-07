@@ -5,6 +5,9 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
@@ -13,25 +16,25 @@
 #define DEBUG_INFO
 #define VERTEX_SHADER_PATH "./shaders/vertex.shader"
 #define FRAGMENT_SHADER_PATH "./shaders/fragment.shader"
+#define FABRIC_TEXTURE_PATH "./textures/fabric.jpg"
 #define RETRY_COMPILATION_SHADERS 3
 
-static State main_state;
-
-void exit_error(const char* error_msg);
+//static State main_state;
 
 void error_callback(int error, const char* description) {
     printf_s("ERROR %d", error);
     puts(": ");
-    exit_error(description);
+    printf_s("%s\n", description);
+    exit(1);
 }
 
-void exit_error(const char* error_msg) {
-        printf_s("%s\n", error_msg);
-        if (main_state.window->window != NULL) {
-            glfwSetWindowShouldClose(main_state.window->window, 1);
-            return;
-        }
-        exit(1);
+void exit_error(const char* error_msg, GLFWwindow* window) {
+    State* main_state = (State*)glfwGetWindowUserPointer(window);
+    printf_s("%s\n", error_msg);
+    if (main_state->window->window != NULL) {
+        glfwSetWindowShouldClose(window, 1);
+    }
+    exit(1);
 }
 
 void setup_glfw_version(int major, int minor){
@@ -46,9 +49,9 @@ void setup_glfw_version(int major, int minor){
 #endif
 }
 
-void load_glad() {
+void load_glad(GLFWwindow* window) {
     int major_minor = gladLoadGL(glfwGetProcAddress);
-    if (major_minor == 0) exit_error("COULDN'T LOAD GL CORRECTLY\n");
+    if (major_minor == 0) exit_error("COULDN'T LOAD GL CORRECTLY\n", window);
 #ifdef DEBUG_INFO
     int major = major_minor/10000;
     int minor = major_minor - major_minor;
@@ -57,6 +60,7 @@ void load_glad() {
 }
 
 static void key_callback(GLFWwindow* window , int key, int scan_code, int action, int mods) {
+    State* main_state = (State*)glfwGetWindowUserPointer(window);
     (void) scan_code;
     if (action == GLFW_RELEASE) return;
 
@@ -72,55 +76,55 @@ static void key_callback(GLFWwindow* window , int key, int scan_code, int action
 
         case GLFW_KEY_R:
             if (mods == 0) {
-                main_state.revise_circle = 1;
+                main_state->revise_circle = 1;
             }
             else {
-                main_state.reload_shaders = 1;
+                main_state->reload_shaders = 1;
             }
         break;
 
         case GLFW_KEY_RIGHT:
-            switch(main_state.to_render){
+            switch(main_state->to_render){
                 case BACKGROUND:
-                    main_state.to_render = DIAMOND;
+                    main_state->to_render = DIAMOND;
                 break;
                 case DIAMOND:
-                    main_state.to_render = CIRCLE;
+                    main_state->to_render = CIRCLE;
                 break;
                 case CIRCLE:
-                    main_state.to_render = ALL;
+                    main_state->to_render = ALL;
                 break;
                 case ALL:
-                    main_state.to_render = BACKGROUND;
+                    main_state->to_render = BACKGROUND;
                 break;
             }
             break;
         case GLFW_KEY_LEFT:
-            switch(main_state.to_render){
+            switch(main_state->to_render){
                 case BACKGROUND:
-                    main_state.to_render = ALL;
+                    main_state->to_render = ALL;
                 break;
                 case DIAMOND:
-                    main_state.to_render = BACKGROUND;
+                    main_state->to_render = BACKGROUND;
                 break;
                 case CIRCLE:
-                    main_state.to_render = DIAMOND;
+                    main_state->to_render = DIAMOND;
                 break;
                 case ALL:
-                    main_state.to_render = CIRCLE;
+                    main_state->to_render = CIRCLE;
                 break;
             }
             break;
 
         case GLFW_KEY_UP:
-            if (main_state.uniforms != NULL) {
+            if (main_state->uniforms != NULL) {
                 //float time = 0;
                 //glGetUniformfv(*main_state.buffers->program, main_state.uniforms->time, &time);
                 //glUniform1f(main_state.uniforms->time, time+.1f);
             }
         break;
         case GLFW_KEY_DOWN:
-            if (main_state.uniforms != NULL) {
+            if (main_state->uniforms != NULL) {
                 //float time = 0;
                 //glGetUniformfv(*main_state.buffers->program, main_state.uniforms->time, &time);
                 //glUniform1f(main_state.uniforms->time, time-.1f);
@@ -135,15 +139,16 @@ void window_resize_callback(GLFWwindow* window, int width, int height) {
     (void) width;
     (void) height;
 
-    main_state.window->Width = width;
-    main_state.window->Height = height;
+    State* main_state = (State*)glfwGetWindowUserPointer(window);
+    main_state->window->Width = width;
+    main_state->window->Height = height;
 
     glViewport(0, 0, width, height);
 }
 
 void setup_window_and_callbacks(Window_struct* window, GLFWkeyfun _key_callback, GLFWwindowsizefun _resize_callback) {
     window->window = glfwCreateWindow( window->Width, window->Height, window->Title, NULL, NULL);
-    if (!window->window) exit_error("Couldn't create a window");
+    if (!window->window) exit_error("Couldn't create a window", window->window);
     glfwMakeContextCurrent(window->window);
 
     glfwSetKeyCallback(window->window, _key_callback);
@@ -157,10 +162,10 @@ void setup_window_and_callbacks(Window_struct* window, GLFWkeyfun _key_callback,
 #endif
 }
 
-void generate_buffers(Buffers_struct* buffers) {
+void generate_buffers(GLFWwindow* window, Buffers_struct* buffers) {
     if (buffers->vao_size > 0){
         buffers->vao = malloc(buffers->vao_size*sizeof(GLuint));
-        if (buffers->vao == NULL) exit_error("Error Creating VAO");
+        if (buffers->vao == NULL) exit_error("Error Creating VAO", window);
         glCreateVertexArrays(buffers->vao_size, buffers->vao);
 
 #ifdef DEBUG_INFO
@@ -170,7 +175,7 @@ void generate_buffers(Buffers_struct* buffers) {
 
     if (buffers->vbo_size > 0) {
         buffers->vbo = malloc(buffers->vbo_size*sizeof(GLuint));
-        if (buffers->vbo == NULL) exit_error("Error Creating VBO");
+        if (buffers->vbo == NULL) exit_error("Error Creating VBO", window);
         glCreateBuffers(buffers->vbo_size, buffers->vbo); //GL_ARRAY_BUFFER
 
 #ifdef DEBUG_INFO
@@ -180,7 +185,7 @@ void generate_buffers(Buffers_struct* buffers) {
 
     if (buffers->ebo_size > 0) {
         buffers->ebo = malloc(buffers->ebo_size*sizeof(GLuint));
-        if (buffers->ebo == NULL) exit_error("Error Creating EBO");
+        if (buffers->ebo == NULL) exit_error("Error Creating EBO", window);
         glCreateBuffers(buffers->ebo_size, buffers->ebo); //GL_ELEMENT_ARRAY_BUFFER
 
 #ifdef DEBUG_INFO
@@ -193,7 +198,7 @@ void generate_buffers(Buffers_struct* buffers) {
 #endif
 }
 
-char* read_shader(char* path) {
+char* read_shader(GLFWwindow* window, char* path) {
     FILE* shader;
     char* content;
     size_t size;
@@ -202,7 +207,7 @@ char* read_shader(char* path) {
     if (error) {
         char text[1000];
         sprintf_s((char*)text, 1000, "ERROR reading %s shader", path);
-        exit_error(text);
+        exit_error(text, window);
         return "";
     }
 
@@ -212,7 +217,7 @@ char* read_shader(char* path) {
     if (content == NULL) {
         char text[1000];
         sprintf_s((char*)text, 1000, "ERROR allocing buffer for %s shader", path);
-        exit_error(text);
+        exit_error(text, window);
         return "";
     }
     fseek(shader, 0, SEEK_SET);
@@ -239,7 +244,7 @@ void shader_log(GLuint shader, const char* shader_type) {
     }
 }
 
-void load_shaders(GLuint* prog) {
+void load_shaders(GLFWwindow* window, GLuint* prog) {
     GLint success;
     GLuint vertex_shader = 0;
     GLuint fragment_shader = 0;
@@ -248,7 +253,7 @@ void load_shaders(GLuint* prog) {
     int tried = 0;
 
     while (!hasCompiled && tried < RETRY_COMPILATION_SHADERS) {
-        const char* vertex_shader_text = read_shader(VERTEX_SHADER_PATH);
+        const char* vertex_shader_text = read_shader(window, VERTEX_SHADER_PATH);
         vertex_shader = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(vertex_shader, 1, &vertex_shader_text, NULL);
         glCompileShader(vertex_shader);
@@ -263,14 +268,14 @@ void load_shaders(GLuint* prog) {
         free((void*)vertex_shader_text);
     }
     if (!hasCompiled) {
-            exit_error("ERROR COMPILING VERTEX SHADER");
+            exit_error("ERROR COMPILING VERTEX SHADER", window);
             goto vertex_end;
     }
 
 
     hasCompiled = GL_FALSE; tried = 0;
     while (!hasCompiled && tried < RETRY_COMPILATION_SHADERS) {
-        const char* fragment_shader_text = read_shader(FRAGMENT_SHADER_PATH);
+        const char* fragment_shader_text = read_shader(window, FRAGMENT_SHADER_PATH);
         fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
         glShaderSource(fragment_shader, 1, &fragment_shader_text, NULL);
         glCompileShader(fragment_shader);
@@ -285,7 +290,7 @@ void load_shaders(GLuint* prog) {
         free((void*)fragment_shader_text);
     }
     if (!hasCompiled) {
-        exit_error("ERROR COMPILING FRAG SHADER");
+        exit_error("ERROR COMPILING FRAG SHADER", window);
         goto frag_end;
     }
 
@@ -299,7 +304,7 @@ void load_shaders(GLuint* prog) {
         glDeleteShader(vertex_shader);
         glDeleteShader(fragment_shader);
         glDeleteProgram(*prog);
-        exit_error("ERROR LINKING PROGRAM");
+        exit_error("ERROR LINKING PROGRAM", window);
     }
 
     glUseProgram(*prog);
@@ -327,33 +332,28 @@ void unbound_buffers() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void draw_routine(){
-    //glBindVertexArray(buffer->vao[0]);
-
-    //glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo[0]);
-    Vertex data[] = {
-        (Vertex) { .point = (Point){ .X = -1, .Y = -1 }, .color = (Color) { .R = 1, .G = 0, .B = 0 } },
-        (Vertex) { .point = (Point){ .X =  1, .Y = -1 }, .color = (Color) { .R = 0, .G = 1, .B = 0 } },
-        (Vertex) { .point = (Point){ .X = .0, .Y =  1 }, .color = (Color) { .R = 0, .G = 0, .B = 1 } }
-    };
-    glBufferData(GL_ARRAY_BUFFER, 3*sizeof(Vertex), data, GL_STATIC_DRAW);
-
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer->ebo[0]);
-    GLuint indexes[] = { 0, 1, 2 };
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 3*sizeof(GLuint), indexes, GL_STATIC_DRAW);
-
-    //glBindVertexArray(0);
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    unbound_buffers();
-}
-
 void background_flag(GLuint vbo, GLuint ebo) {
     Vertex data[] = {
-        (Vertex) { .point = (Point) { .X = -1, .Y = -1 }, .color = (Color) { .R = 0, .G = 156.f/255.f, .B = 59.f/255.f } },
-        (Vertex) { .point = (Point) { .X = -1, .Y =  1 }, .color = (Color) { .R = 0, .G = 156.f/255.f, .B = 59.f/255.f } },
-        (Vertex) { .point = (Point) { .X =  1, .Y = -1 }, .color = (Color) { .R = 0, .G = 156.f/255.f, .B = 59.f/255.f } },
-        (Vertex) { .point = (Point) { .X =  1, .Y =  1 }, .color = (Color) { .R = 0, .G = 156.f/255.f, .B = 59.f/255.f } },
+        (Vertex) {
+            .point    = (Point) { .X = -1, .Y = -1 },
+            .color    = (Color) { .R =  0, .G = 156.f/255.f, .B = 59.f/255.f },
+            .texCoord = (Point) { .X =  0, .Y = 1 }
+        },
+        (Vertex) {
+            .point    = (Point) { .X = -1, .Y = 1 },
+            .color    = (Color) { .R =  0, .G = 156.f/255.f, .B = 59.f/255.f },
+            .texCoord = (Point) { .X =  0, .Y = 0 }
+        },
+        (Vertex) {
+            .point    = (Point) { .X = 1, .Y = -1 },
+            .color    = (Color) { .R = 0, .G = 156.f/255.f, .B = 59.f/255.f },
+            .texCoord = (Point) { .X = 1, .Y = 1 }
+        },
+        (Vertex) {
+            .point    = (Point) { .X = 1, .Y = 1 },
+            .color    = (Color) { .R = 0, .G = 156.f/255.f, .B = 59.f/255.f },
+            .texCoord = (Point) { .X = 1, .Y = 0 }
+        },
     };
     glNamedBufferStorage(vbo, 4*sizeof(Vertex), data, GL_DYNAMIC_STORAGE_BIT);
     //glBufferData(GL_ARRAY_BUFFER, 4*sizeof(Vertex), data, GL_STATIC_READ);
@@ -366,10 +366,26 @@ void background_flag(GLuint vbo, GLuint ebo) {
 
 void diamond_flag(GLuint vbo, GLuint ebo) {
     Vertex data[] = {
-        (Vertex) { .point = (Point) { .X = -1, .Y =  0 }, .color = (Color) { .R = 255.f/255.f, .G = 223.f/255.f, .B = 0.f/255.f } },
-        (Vertex) { .point = (Point) { .X =  0, .Y =  1 }, .color = (Color) { .R = 255.f/255.f, .G = 223.f/255.f, .B = 0.f/255.f } },
-        (Vertex) { .point = (Point) { .X =  0, .Y = -1 }, .color = (Color) { .R = 255.f/255.f, .G = 223.f/255.f, .B = 0.f/255.f } },
-        (Vertex) { .point = (Point) { .X =  1, .Y =  0 }, .color = (Color) { .R = 255.f/255.f, .G = 223.f/255.f, .B = 0.f/255.f } },
+        (Vertex) {
+            .point    = (Point) { .X = -1, .Y =  0 },
+            .color    = (Color) { .R = 255.f/255.f, .G = 223.f/255.f, .B = 0.f/255.f },
+            .texCoord = (Point) { .X = 0, .Y = 0}
+        },
+        (Vertex) {
+            .point    = (Point) { .X =  0, .Y =  1 },
+            .color    = (Color) { .R = 255.f/255.f, .G = 223.f/255.f, .B = 0.f/255.f },
+            .texCoord = (Point) { .X = 0, .Y = 0 }
+        },
+        (Vertex) {
+            .point    = (Point) { .X =  0, .Y = -1 },
+            .color    = (Color) { .R = 255.f/255.f, .G = 223.f/255.f, .B = 0.f/255.f },
+            .texCoord = (Point) { .X = 0, .Y = 0 }
+        },
+        (Vertex) {
+            .point    = (Point) { .X =  1, .Y =  0 },
+            .color    = (Color) { .R = 255.f/255.f, .G = 223.f/255.f, .B = 0.f/255.f },
+            .texCoord = (Point) { .X = 0, .Y = 0}
+        },
     };
     glNamedBufferStorage(vbo, 4*sizeof(Vertex), data, GL_DYNAMIC_STORAGE_BIT);
     //glBufferData(GL_ARRAY_BUFFER, 4*sizeof(Vertex), data, GL_STATIC_READ);
@@ -392,13 +408,14 @@ void circle_flag(GLuint vbo, GLuint ebo, int vertexes) {
         indexes[i] = i;
         double angle = step*(double)(i-1);
         data[i] = (Vertex) {
-            .point = (Point) { .X = (GLfloat)(radius*cos(angle)), .Y = (GLfloat)(radius*sin(angle)) },
-            .color = (Color) { .R = 0, .G = 39.f/255.f, .B = 118.f/255.f }
+            .point    = (Point) { .X = (GLfloat)(radius*cos(angle)), .Y = (GLfloat)(radius*sin(angle)) },
+            .color    = (Color) { .R = 0, .G = 39.f/255.f, .B = 118.f/255.f },
+            .texCoord = (Point) { .X = 0, .Y = 0 }
         };
     }
     indexes[0] = 0;
     indexes[vertexes] = 1;
-    data[0] = (Vertex) { .point = (Point) { .X = 0, .Y = 0 }, .color = (Color) { .R = 0, .G = 39.f/255.f, .B = 118.f/255.f } };
+    data[0] = (Vertex) { .point = (Point) { .X = 0, .Y = 0 }, .color = (Color) { .R = 0, .G = 39.f/255.f, .B = 118.f/255.f }, .texCoord = (Point) { .X = 0, .Y = 0 } };
 
 
     glNamedBufferData(vbo, vertexes*sizeof(Vertex), data, GL_STREAM_DRAW);
@@ -430,37 +447,41 @@ void update_time(double* prev_time, double* time, Uniforms* uniforms) {
 }
 
 void initialize(Window_struct* window, GLFWerrorfun _error_callback, GLFWkeyfun _key_callback, GLFWwindowsizefun _resize_callback) {
-    if (!glfwInit()) exit_error("Error loading glfw");
+    if (!glfwInit()) exit_error("Error loading glfw", window->window);
     glfwSetErrorCallback(_error_callback);
     setup_glfw_version(4, 5);
 
     setup_window_and_callbacks(window, _key_callback, _resize_callback);
 
-    load_glad();
+    load_glad(window->window);
 }
 
-void cleanup(Window_struct* window, Buffers_struct* buffers) {
-    delete_buffers(buffers);
-    for (int i = 0; i < buffers->program_size; i++)
-        glDeleteProgram(buffers->program[i]);
-    glfwDestroyWindow(window->window);
+void cleanup(State* main_state) {
+    glDeleteTextures(main_state->textures->texture_size, main_state->textures->texture);
+    delete_buffers(main_state->buffers);
+    for (int i = 0; i < main_state->buffers->program_size; i++)
+        glDeleteProgram(main_state->buffers->program[i]);
+    glfwDestroyWindow(main_state->window->window);
 }
 
 void setup_attribs(Buffers_struct* buffers){
     for(int i = 0; i < buffers->vao_size; i++){
         glEnableVertexArrayAttrib(buffers->vao[i], VA_ATT_POS);
         glEnableVertexArrayAttrib(buffers->vao[i], VA_ATT_COL);
+        glEnableVertexArrayAttrib(buffers->vao[i], VA_ATT_TEX);
         //glBindVertexArray(buffers->vao[i]);
         //glEnableVertexAttribArray(VA_ATT_POS);
         //glEnableVertexAttribArray(VA_ATT_COL);
 
         glVertexArrayAttribFormat(buffers->vao[i], VA_ATT_POS, 2, GL_FLOAT, GL_FALSE, 0);//No stride?? Strange
         glVertexArrayAttribFormat(buffers->vao[i], VA_ATT_COL, 3, GL_FLOAT, GL_FALSE, sizeof(Point));//No stride?? Strange
+        glVertexArrayAttribFormat(buffers->vao[i], VA_ATT_TEX, 2, GL_FLOAT, GL_FALSE, sizeof(Color)+sizeof(Point));//No stride?? Strange
         //glVertexAttribPointer(VA_ATT_POS, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), NULL);
         //glVertexAttribPointer(VA_ATT_COL, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(Point));
 
         glVertexArrayAttribBinding(buffers->vao[i], VA_ATT_POS, 0);//binding points dont make sense
         glVertexArrayAttribBinding(buffers->vao[i], VA_ATT_COL, 0);//binding points dont make sense
+        glVertexArrayAttribBinding(buffers->vao[i], VA_ATT_TEX, 0);//binding points dont make sense
     }
 }
 
@@ -471,10 +492,54 @@ void binding_buffers(Buffers_struct* buffers){
     }
 }
 
+void setup_textures(Texture_struct* textures) {
+    textures->texture_info = malloc(textures->texture_size*sizeof(TextureInfo_struct));
+    textures->texture = malloc(textures->texture_size*sizeof(GLuint));
+}
+
+void setup_texture_uniforms(Texture_struct* texture){
+    for (int index = 0; index < texture->texture_size; index++)
+        glUniform1i(glGetUniformLocation(texture->texture_info[index].program, texture->texture_info[index].name), texture->texture_info[index].unit);
+    glCreateTextures(GL_TEXTURE_2D, texture->texture_size, texture->texture);
+}
+
+void setup_texture_parameters(GLuint texture, GLenum* parameters, GLuint* values, size_t parameter_count){
+    for (size_t i = 0; i < parameter_count; i++)
+        glTextureParameteri(texture, parameters[i], values[i]);
+}
+
+void load_textures(GLuint texture, TextureInfo_struct* texture_info, const char* path_to_texture) {
+    unsigned char* data = stbi_load(path_to_texture, &texture_info->width, &texture_info->height, &texture_info->channels, STBI_rgb_alpha);
+    int ok = stbi_info(path_to_texture, &texture_info->width, &texture_info->height, &texture_info->channels);
+    printf_s("Image path=%s, ok=%d, w=%d, h=%d\n", path_to_texture, ok, texture_info->width, texture_info->height);
+    glTextureStorage2D(texture, 1, GL_RGBA8, texture_info->width, texture_info->height);
+    glTextureSubImage2D(texture, 0, 0, 0, texture_info->width, texture_info->height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+    setup_texture_parameters(
+        texture,
+        (GLenum[]){GL_TEXTURE_WRAP_S, GL_TEXTURE_WRAP_T, GL_TEXTURE_MIN_FILTER, GL_TEXTURE_MAG_FILTER},
+        (GLuint[]){GL_REPEAT, GL_REPEAT, GL_NEAREST, GL_LINEAR},
+        4
+    );
+
+    stbi_image_free(data);
+}
+
+void disableTexture(GLuint program){
+    glUniform1i(glGetUniformLocation(program, "whichTexture"), -1);
+}
+
+void enableTexture(GLuint program, GLuint texture, TextureInfo_struct* texture_info){
+    glUniform1i(glGetUniformLocation(program, "whichTexture"), texture_info->unit);
+    glBindTextureUnit(texture_info->unit, texture);
+}
+
 int main() {
-    Window_struct window; main_state.window = &window;
-    Buffers_struct buffers; main_state.buffers = &buffers;
-    Uniforms uniforms; main_state.uniforms = &uniforms;
+    State main_state;
+    Window_struct  window;   main_state.window   = &window;
+    Buffers_struct buffers;  main_state.buffers  = &buffers;
+    Uniforms       uniforms; main_state.uniforms = &uniforms;
+    Texture_struct textures; main_state.textures = &textures;
     main_state.revise_circle  = 0;
     main_state.reload_shaders = 0;
     main_state.to_render = BACKGROUND;
@@ -491,9 +556,10 @@ int main() {
         key_callback,
         window_resize_callback
     );
+    glfwSetWindowUserPointer(window.window, &main_state);
 
     buffers.vao_size = 3; buffers.vbo_size = 3; buffers.ebo_size = 3;
-    generate_buffers(&buffers);
+    generate_buffers(window.window, &buffers);
     binding_buffers(&buffers);
     setup_attribs(&buffers);
 
@@ -514,13 +580,25 @@ int main() {
     }
 
     buffers.program_size = 1; buffers.program = malloc(buffers.program_size*sizeof(GLuint));
-    load_shaders(buffers.program);
+    load_shaders(window.window, buffers.program);
 
     load_uniforms(buffers.program[0], &uniforms);
 
-    //draw_routine();
+    textures.texture_size = 1;
+    setup_textures(&textures);
+    textures.texture_info[0] = (TextureInfo_struct) {
+        .name = "fabricTexture",
+        .unit = 0,
+        .program = buffers.program[0]
+    };
+
+    setup_texture_uniforms(&textures);
+    load_textures(textures.texture[0], &textures.texture_info[0], FABRIC_TEXTURE_PATH);
+    disableTexture(buffers.program[0]);
+
     double prev_time = 0;
     double time;
+
     while (!glfwWindowShouldClose(window.window)) {
         update_time(&prev_time, &time, &uniforms);
         if (main_state.revise_circle) {
@@ -531,7 +609,7 @@ int main() {
         }
         if (main_state.reload_shaders) {
             for (int i = 0; i < buffers.program_size; i++) glDeleteProgram(buffers.program[i]);
-            load_shaders(buffers.program);
+            load_shaders(window.window, buffers.program);
             load_uniforms(buffers.program[0], &uniforms);
             main_state.reload_shaders = 0;
         }
@@ -540,33 +618,34 @@ int main() {
 
         glUseProgram(buffers.program[0]);
         if ((toBeRendered & BACKGROUND) == BACKGROUND) {
+            enableTexture(buffers.program[0], textures.texture[0], &textures.texture_info[0]);
             glBindVertexArray(buffers.vao[0]);
 
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 
-            glBindVertexArray(0);
         }
 
         if ((toBeRendered & DIAMOND) == DIAMOND) {
+            disableTexture(buffers.program[0]);
             glBindVertexArray(buffers.vao[1]);
 
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 
-            glBindVertexArray(0);
         }
 
         if ((toBeRendered & CIRCLE) == CIRCLE) {
+            disableTexture(buffers.program[0]);
             glBindVertexArray(buffers.vao[2]);
 
             glDrawElements(GL_TRIANGLE_FAN, circle_vertexes+1, GL_UNSIGNED_INT, NULL);
 
-            glBindVertexArray(0);
         }
+        glBindVertexArray(0);
 
         glfwSwapBuffers(window.window);
         glfwPollEvents();
     }
 
-    cleanup(&window, &buffers);
+    cleanup(&main_state);
     return 0;
 }
