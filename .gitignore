@@ -5,3 +5,4 @@
 **/**/gl.c
 textures/*
 .cache
+build
