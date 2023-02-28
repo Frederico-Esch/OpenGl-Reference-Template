@@ -22,32 +22,32 @@ add_custom_command(
     TARGET opengl_template POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
     "${CMAKE_CURRENT_SOURCE_DIR}/graphics.config"
-    $<TARGET_FILE_DIR:opengl_template>
+    $<TARGET_FILE_DIR:opengl_template> #"${CMAKE_BINARY_DIR}"
 )
 
 #SHADERS
+#add_custom_command(
+#    TARGET opengl_template POST_BUILD
+#    COMMAND ${CMAKE_COMMAND} -E make_directory
+#    "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
+#    $<TARGET_FILE_DIR:opengl_template>
+#)
 add_custom_command(
     TARGET opengl_template POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
     "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
-    $<TARGET_FILE_DIR:opengl_template>
-)
-add_custom_command(
-    TARGET opengl_template POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
-    "$<TARGET_FILE_DIR:opengl_template>/shaders"
+    "$<TARGET_FILE_DIR:opengl_template>/shaders" #"${CMAKE_BINARY_DIR}/shaders"
 )
 
 #TEXTURES
+#add_custom_command(
+#    TARGET opengl_template POST_BUILD
+#    COMMAND ${CMAKE_COMMAND} -E make_directory
+#    "$<TARGET_FILE_DIR:opengl_template>/textures"
+#)
 add_custom_command(
     TARGET opengl_template POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-    "$<TARGET_FILE_DIR:opengl_template>/textures"
-)
-add_custom_command(
-    TARGET opengl_template POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
     "${CMAKE_CURRENT_SOURCE_DIR}/textures"
-    "$<TARGET_FILE_DIR:opengl_template>/textures"
+    "$<TARGET_FILE_DIR:opengl_template>/textures" #"${CMAKE_BINARY_DIR}/textures"
 )
