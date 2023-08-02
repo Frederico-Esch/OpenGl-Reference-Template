@@ -1,6 +1,6 @@
 [
     {
-        "directory": "D:\\DEV\\OpenGl-Template",
+        "directory": "E:\\DEV\\OpenGl-Template",
         "command": "cl /std:c11 /I include/GLFW /I include src/main.c /c",
         "file": "src/main.c"
     }
