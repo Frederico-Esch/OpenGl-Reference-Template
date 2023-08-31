@@ -1,3 +1,6 @@
+include/glad
+include/GLFW
+include/KHR
 *.exe
 *.obj
 **/**/*.dll
