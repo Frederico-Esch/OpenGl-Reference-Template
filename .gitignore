@@ -6,6 +6,7 @@ include/KHR
 **/**/*.dll
 **/**/*.lib
 **/**/gl.c
+**/**/glad.c
 textures/*
 .cache
 build

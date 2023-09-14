@@ -3,7 +3,7 @@ project(opengl_template)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_FLAGS "/W4 /WX")
 
-add_executable(opengl_template "${CMAKE_CURRENT_SOURCE_DIR}/src/gl.c" "${CMAKE_CURRENT_SOURCE_DIR}/src/main.c")
+add_executable(opengl_template "${CMAKE_CURRENT_SOURCE_DIR}/src/glad.c" "${CMAKE_CURRENT_SOURCE_DIR}/src/main.c" "${CMAKE_CURRENT_SOURCE_DIR}/src/callbacks.c" "${CMAKE_CURRENT_SOURCE_DIR}/src/utils.c" )
 
 target_include_directories(opengl_template PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(opengl_template PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/glfw3dll.lib" PRIVATE opengl32.lib PRIVATE User32.lib PRIVATE Gdi32.lib PRIVATE Shell32.lib)
